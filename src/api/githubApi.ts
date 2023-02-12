@@ -1,10 +1,9 @@
 import axios, { AxiosInstance } from "axios";
+import * as queryString from "querystring";
 
-class Api {
+class GithubApi {
   private _axiosInstance: AxiosInstance = axios.create({
-    baseURL: process.env.NODE_ENV
-      ? "http://localhost:8080"
-      : "https://skipliassigment-vuongpsht.onrender.com/",
+    baseURL: "https://cors-anywhere.herokuapp.com/api.github.com",
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET,PUT,POST,DELETE,PATCH,OPTIONS",
@@ -23,6 +22,11 @@ class Api {
   POST(path: string, params: any) {
     return this.axiosInstance.post(path, { ...params });
   }
+  GET(path: string, params: any) {
+    return this.axiosInstance.get(
+      `${path}${params ? "?" + queryString.encode(params) : ""}`
+    );
+  }
 }
 
-export const api = new Api();
+export const github = new GithubApi();

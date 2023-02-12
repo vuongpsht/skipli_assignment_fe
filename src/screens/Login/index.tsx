@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useState } from "react";
 import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -9,23 +10,27 @@ import Container from "@mui/material/Container";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useAuthFlow } from "../../hooks/useAuthFlow";
 import ReactFlagsSelect from "react-flags-select";
-import { useState } from "react";
+import { AuthStepEnum } from "../../store/atoms/authAtoms";
 
 const theme = createTheme();
-
+const customLabel: any = {
+  US: { primary: "US", secondary: "+1" },
+  VN: { primary: "VN", secondary: "+84" },
+};
 const GetAccessToken = () => {
-  const [selected, setSelected] = useState("US");
+  const [selected, setSelected] = useState<any>("US");
   const { createNewAccessCode } = useAuthFlow();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const phoneNumber = data.get("phoneNumber");
-    const reg = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/im;
-    if (phoneNumber && reg.test(phoneNumber.toString())) {
+    const phoneNumber = data.get("phoneNumber")?.toString();
+    const phoneRegex =
+      /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/im;
+    if (phoneNumber && phoneRegex.test(phoneNumber)) {
+      createNewAccessCode(customLabel[selected].secondary + phoneNumber);
     }
   };
-  console.log(selected);
   return (
     <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
       <Typography component="h2" variant="subtitle1">
@@ -34,10 +39,7 @@ const GetAccessToken = () => {
       <ReactFlagsSelect
         selected={selected}
         onSelect={(code) => setSelected(code)}
-        customLabels={{
-          US: { primary: "US", secondary: "+1" },
-          VN: { primary: "VN", secondary: "+84" },
-        }}
+        customLabels={customLabel}
         countries={["US", "VN"]}
       />
       <TextField
@@ -58,7 +60,16 @@ const GetAccessToken = () => {
 };
 
 const VerifyCode = () => {
-  const handleSubmit = () => {};
+  const { verifyAccessCode } = useAuthFlow();
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const code = data.get("code")?.toString();
+    if (code && code.length === 6) {
+      verifyAccessCode(code);
+    }
+  };
   return (
     <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
       <Typography component="h2" variant="subtitle1">
@@ -82,12 +93,14 @@ const VerifyCode = () => {
   );
 };
 export const Login = () => {
-  const { createNewAccessCode } = useAuthFlow();
-
-  React.useEffect(() => {
-    createNewAccessCode();
-  }, []);
-
+  const { step } = useAuthFlow();
+  const InputComponent = () => {
+    if (step === AuthStepEnum.GetAccessCode) {
+      return <GetAccessToken />;
+    } else {
+      return <VerifyCode />;
+    }
+  };
   return (
     <ThemeProvider theme={theme}>
       <Container component="main" maxWidth="xs">
@@ -104,7 +117,7 @@ export const Login = () => {
           <Typography component="h1" variant="h4">
             Sign in
           </Typography>
-          <GetAccessToken />
+          <InputComponent />
         </Box>
       </Container>
     </ThemeProvider>
